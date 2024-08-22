@@ -21,13 +21,7 @@ public class DockerService : IDockerService
         using var tarball = CreateTarForDockerfileDirectory(dockerfileDirectory);
         using var responseStream = await _dockerClient.Images.BuildImageFromDockerfileAsync(tarball, imageBuildParameters);
         
-        // Вывод лога билда
-        using var reader = new StreamReader(responseStream);
-        string line;
-        while ((line = await reader.ReadLineAsync()) != null)
-        {
-            Console.WriteLine(line);
-        }
+        await WaitForBuildImageCompletionAsync(responseStream);
     }
     
     public async Task RunContainerAsync(string imageName)
@@ -44,7 +38,13 @@ public class DockerService : IDockerService
         
         await _dockerClient.Containers.StartContainerAsync(response.ID, new ContainerStartParameters());
     }
-    
+
+    private async Task WaitForBuildImageCompletionAsync(Stream stream)
+    {
+        using var reader = new StreamReader(stream);
+        await reader.ReadToEndAsync();
+    }
+
     private static Stream CreateTarForDockerfileDirectory(string dockerfileDirectory)
     {
         var tarStream = new MemoryStream();
